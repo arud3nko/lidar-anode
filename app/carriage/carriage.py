@@ -1,14 +1,18 @@
+"""
+Модуль для управления кареткой
+"""
+
 import logging
-import serial
 import collections
 
-from serial import SerialException, SerialTimeoutException
 from typing import Optional, Union
 
-from app import CarriageSettings
-from app.constants import Move, MoveResponsesDevice1, MoveResponsesDevice2, MoveStages
-from app.carriage.exceptions import MoveException, MoveRequestException, MoveResponseException
+import serial
+from serial import SerialException, SerialTimeoutException
 
+from .exceptions import MoveException, MoveRequestException, MoveResponseException
+from .constants import Move, MoveResponsesDevice1, MoveResponsesDevice2, MoveStages
+from .models import CarriageParams
 
 logger = logging.getLogger(__package__)
 
@@ -18,9 +22,7 @@ class Carriage:
     Управление кареткой
     """
     def __init__(self,
-                 port:          str = CarriageSettings.COM_PORT.value,
-                 baud_rate:     int = CarriageSettings.RATE.value,
-                 timeout:       Optional[Union[int, float]] = CarriageSettings.TIMEOUT.value,
+                 params:        CarriageParams,
                  parity:        str = serial.PARITY_NONE,
                  stop_bits:     int = serial.STOPBITS_ONE,
                  bytesize:      int = serial.EIGHTBITS,
@@ -31,9 +33,9 @@ class Carriage:
         """
         try:
             self.client = serial.Serial(
-                port=port,
-                baudrate=baud_rate,
-                timeout=timeout,
+                port=params.port,
+                baudrate=params.baudrate,
+                timeout=params.timeout,
                 parity=parity,
                 stopbits=stop_bits,
                 bytesize=bytesize,
@@ -45,7 +47,7 @@ class Carriage:
             raise
 
     async def __aenter__(self):
-        pass
+        return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """
@@ -129,8 +131,8 @@ class Carriage:
 
             yield MoveStages.RETURNED.value
 
-        except (MoveRequestException, MoveResponseException):
-            raise MoveException
+        except (MoveRequestException, MoveResponseException) as exc:
+            raise MoveException from exc
 
     async def __wait_for_response(self, expected: bytes) -> bytes:
         """
@@ -140,17 +142,16 @@ class Carriage:
         :raises: MoveResponseException - если ошибка при ожидании ответа
         """
         try:
-            logger.debug(f"Waiting for response. Expected: {expected}")
+            logger.debug("Waiting for response. Expected: %s", expected)
             response = self.client.read_until(
                 expected=bytes(expected)
             )
-            logger.debug(f"Received response: {response}")
+            logger.debug("Received response: %s", response)
         except Exception as exception:
             logger.exception("Exception occurred while waiting for response",
                              exc_info=exception)
-            raise MoveResponseException
-        else:
-            return response
+            raise MoveResponseException from exception
+        return response
 
     async def __send_request(self, request: list) -> None:
         """
@@ -160,8 +161,8 @@ class Carriage:
         :raises: MoveRequestException - если вышел таймаут
         """
         try:
-            logger.debug(f"Sending request: {request}")
+            logger.debug("Sending request: %s", request)
             self.client.write(request)
         except SerialTimeoutException as exception:
-            logger.error(f"Error occurred while trying to send request: {exception.strerror}")
-            raise MoveRequestException
+            logger.error("Error occurred while trying to send request: %s", exception.strerror)
+            raise MoveRequestException from exception

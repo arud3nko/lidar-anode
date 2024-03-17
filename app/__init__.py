@@ -2,9 +2,28 @@
 required Python3.8
 """
 
+import logging
 
 from configparser import ConfigParser
 from enum import Enum
+
+
+LOGGING_FORMAT = "%(levelname)s %(name)s %(asctime)s [%(filename)s:%(lineno)d] %(message)s"
+LOGGING_DATETIME = "%Y-%m-%d %H:%M:%S"
+
+logger = logging.getLogger(__package__)
+logger.setLevel(logging.DEBUG)
+
+handler = logging.FileHandler(filename=f"./log/{__package__}.log")
+stream_handler = logging.StreamHandler()
+formatter = logging.Formatter(fmt=LOGGING_FORMAT,
+                              datefmt=LOGGING_DATETIME)
+
+handler.setFormatter(formatter)
+stream_handler.setFormatter(formatter)
+
+logger.addHandler(stream_handler)
+logger.addHandler(handler)
 
 config = ConfigParser()
 config.read("conf.ini")

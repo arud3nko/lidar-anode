@@ -1,48 +1,37 @@
-import logging
-import socket
 import asyncio
-import uuid
+import collections
+import logging
 
-from app import LidarSettings
-from app.constants import LidarMessages
-from app.lidar.exceptions import SocketConnectionException
-
+from .client import AsyncSocketClient
+from .exceptions import SocketConnectionException
+from .models import LidarParams
+from .constants import LidarMessages
 
 logger = logging.getLogger(__package__)
 
 
-class Lidar:
+class Lidar(AsyncSocketClient):
     def __init__(self,
-                 ip:      str,
-                 port:    int = LidarSettings.PORT.value,
-                 timeout: int = LidarSettings.TIMEOUT.value):
-        self.ip = ip
-        self.port = port
-        self.timeout = timeout
-        # self.client = socket.socket(socket.AF_INET,
-        #                             socket.SOCK_STREAM)
-        # self.client.settimeout(5)
+                 params: LidarParams):
+        super().__init__(params=params)
+        self.__scanning_in_progress = False
 
-    # async def _connect(self) -> None:
-    #     """
-    #     Подключение к сокету лидара
-    #     :return:
-    #     """
-    #     try:
-    #         logger.debug("connecting...")
-    #         self.client.connect(
-    #             (
-    #                 self.ip,
-    #                 self.port
-    #             )
-    #         )
-    #     except socket.error as exception:
-    #         logger.error(f"({self.ip}) Error occurred while trying to send request: {exception}")
-    #         # raise SocketConnectionException
-    #     else:
-    #         logger.error(f"({self.ip}) Successfully connected to lidar")
+    async def __aenter__(self):
+        await super().__aenter__()
+        return self
 
-    async def scan(self):
-        while True:
-            await asyncio.sleep(0.5)
-            yield uuid.uuid4()
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.__scanning_in_progress:
+            await self.stop()
+            await asyncio.sleep(0.1)
+        await super().__aexit__(exc_type, exc_val, exc_tb)
+
+    async def scan(self) -> collections.AsyncIterable:
+        self.__scanning_in_progress = True
+        await super().write(LidarMessages.MESSAGE_START_MES.value)
+        await super().write(LidarMessages.MESSAGE_START_FAST.value)
+        return super().read()
+
+    async def stop(self):
+        await super().write(LidarMessages.MESSAGE_STOP_FAST.value)
+        await super().write(LidarMessages.MESSAGE_STANDBY.value)
