@@ -28,12 +28,9 @@ def counting_arrays(string, choice, c_array):
         elif choice == 2:  # расчет углов
             c_array.append(55 + (angle_count * 0.0833))  # 55 - начальный угол, 0.0833 - расстояние между углами
             angle_count = angle_count + 1
-        elif choice == 3:  # для refl (не используется)
-            c_array.append(dec)
     return c_array
     # print("len of angles: " + str(len(c_arrays_angle)))
     # print("len of lens: " + str(len(c_arrays_len)) + "\n")
-
 
 def counting(c_arrays_len, c_arrays_angle, z, value_counting):
     coord_array = []

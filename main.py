@@ -8,6 +8,8 @@ from asyncio import Queue
 from app.carriage import Carriage
 from app.lidar import Lidar, LidarParams
 
+from app.utils import calculate_length, calculate_angles, make_split
+
 
 async def simple_test_carriage(carriage: Carriage):
     async for stage in carriage.move():
@@ -29,18 +31,21 @@ async def lidar_worker(number: int, ip: str, message_queue: Queue):
 
     async with Lidar(params=lidar_params) as lidar:
         async for message in await lidar.scan():
-            print(f"> Lidar #{number} {message}")
             await message_queue.put((number, message))
 
 
 async def process_messages(message_queue: asyncio.Queue, file_path: str):
-    async with aiofiles.open(file_path, 'ab') as file:
+    async with aiofiles.open(file_path, 'wb') as file:
         while True:
             try:
-                number, message = await asyncio.wait_for(message_queue.get(), timeout=0.1)
+                number, message = await asyncio.wait_for(message_queue.get(), timeout=1)
+
+                length = calculate_length(make_split(message))
+                angles = calculate_angles(len(length))
+
+                await file.write(str([length, angles]).encode())
             except asyncio.TimeoutError:
                 break
-            await file.write(message)
 
 
 async def scan_anode():

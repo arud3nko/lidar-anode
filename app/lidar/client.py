@@ -58,8 +58,7 @@ class AsyncSocketClient:
         Чтение сообщений из сокета
         """
         while True:
-            data = await self._reader.read(1024)
+            data = await self._reader.read(3489)
             if not data:
                 break
             yield data
-

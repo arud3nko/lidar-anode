@@ -1,12 +1,17 @@
 import asyncio
+import aiofiles
 import uuid
-
+import json
 
 async def scan_imitation(writer):
-    while True:
-        await asyncio.sleep(0.001)
-        writer.write(str(uuid.uuid4()).encode())
-        await writer.drain()  # Обязательно использовать await writer.drain() для гарантии отправки данных
+    async with aiofiles.open("../app/tests/data/source_data_bytes.txt", "rb") as file:
+        while True:
+            data = await file.read(3489)
+            if not data:  # Если данных больше нет, выходим из цикла
+                break
+            await asyncio.sleep(0.001)
+            writer.write(data)
+            await writer.drain()
 
 
 async def handle_connection(reader, writer):
