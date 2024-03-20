@@ -20,3 +20,9 @@ class LidarMessages(Enum):
     MESSAGE_STOP_FAST = (b'\x02\x02\x02\x02\x00\x00\x00\x11\x73\x45\x4E\x20\x4C\x4D\x44\x73\x63\x61\x6E\x64\x61\x74'
                          b'\x61\x20\x00\x32')
 
+
+class LidarFormulaeConstants(Enum):
+    """
+    Константы для формул
+    """
+    Z = 0.0018562291554143687

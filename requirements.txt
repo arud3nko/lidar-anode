@@ -1,3 +1,5 @@
 pyserial==3.5
 pydantic~=2.6.1
-aiofiles
+aiofiles~=23.2.1
+matplotlib~=3.7.5
+numpy~=1.24.4

@@ -1,14 +1,23 @@
+"""
+
+Точка входа в которой на коленке собран алгоритм
+Движение каретки имитируется в carriage_imitation.
+Подключается один тестовый лидар, для подключения уже должен быть поднят сокет-сервер
+на порту 50007, для этого запускаем socket_server из tests
+
+После получения и обработки сообщений данные летят в построение графика
+можно сохранить их в файл, сохранив coords
+
+"""
+
+
 import asyncio
-import aiofiles
 
 from contextlib import suppress
-from asyncio import Queue
 
+from app import Carriage, lidar_worker, process_messages
 
-from app.carriage import Carriage
-from app.lidar import Lidar, LidarParams
-
-from app.utils import calculate_length, calculate_angles, make_split
+from app.tests.test_plot import build_slices_plot
 
 
 async def simple_test_carriage(carriage: Carriage):
@@ -25,45 +34,21 @@ async def carriage_imitation(*args):
                 task.cancel()
 
 
-async def lidar_worker(number: int, ip: str, message_queue: Queue):
-    lidar_params = LidarParams(ip=ip,
-                               port=50007)
-
-    async with Lidar(params=lidar_params) as lidar:
-        async for message in await lidar.scan():
-            await message_queue.put((number, message))
-
-
-async def process_messages(message_queue: asyncio.Queue, file_path: str):
-    async with aiofiles.open(file_path, 'wb') as file:
-        while True:
-            try:
-                number, message = await asyncio.wait_for(message_queue.get(), timeout=1)
-
-                length = calculate_length(make_split(message))
-                angles = calculate_angles(len(length))
-
-                await file.write(str([length, angles]).encode())
-            except asyncio.TimeoutError:
-                break
-
-
 async def scan_anode():
     message_queue = asyncio.Queue()
-    file_path = "./lidar_messages.txt"  # Путь к файлу для записи сообщений
 
-    lidar_task_1 = asyncio.create_task(lidar_worker(1, "", message_queue))
-    lidar_task_2 = asyncio.create_task(lidar_worker(2, "", message_queue))
+    lidar_task_1 = asyncio.create_task(lidar_worker(1, "", 50007, message_queue))
 
-    carriage_move_task = asyncio.create_task(carriage_imitation(lidar_task_1, lidar_task_2))
-    message_processing_task = asyncio.create_task(process_messages(message_queue, file_path))
+    carriage_move_task = asyncio.create_task(carriage_imitation(lidar_task_1))
+    message_processing_task = asyncio.create_task(process_messages(message_queue))
 
     with suppress(asyncio.CancelledError):
         await lidar_task_1
-        await lidar_task_2
 
     await carriage_move_task
-    await message_processing_task
+    coords = await message_processing_task  # после обработки всех сообщений получаем List[List[tuple]]
+
+    build_slices_plot(coords)
 
 
 async def main():
