@@ -61,4 +61,4 @@ class AsyncSocketClient:
             data = await self._reader.read(3489)
             if not data:
                 break
-            yield data
+            yield data.hex()

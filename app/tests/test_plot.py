@@ -1,21 +1,30 @@
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 import numpy as np
 
-
 def build_slices_plot(points_data):
-    fig = plt.figure(figsize=(20, 16))
-    ax = fig.add_subplot(111, projection='3d')
+    x, y, z = [], [], []
     for points in points_data:
-        x_coords = [point[0] for point in points]
-        y_coords = [point[1] for point in points]
-        z_coords = [point[2] for point in points]
+        x.extend([point[0] for point in points])
+        y.extend([point[1] for point in points])
+        z.extend([point[2] for point in points])
 
-        colors = np.linspace(0, 1, len(z_coords))
+    fig = go.Figure(data=[go.Scatter3d(
+        x=x,
+        y=y,
+        z=z,
+        mode='markers',
+        marker=dict(
+            size=0.7,
+            color=z,  # set color to an array/list of desired values
+            colorscale='Viridis'
+        )
+    )])
 
-        ax.scatter(x_coords, y_coords, z_coords, s=1, c=colors, cmap='RdYlGn', marker='o')
+    fig.update_layout(scene=dict(
+        xaxis_title='X',
+        yaxis_title='Y',
+        zaxis_title='Z',
+        aspectratio=dict(x=1, y=1, z=1),
+    ))
 
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-
-    plt.show()
+    fig.show()

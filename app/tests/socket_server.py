@@ -23,6 +23,17 @@ async def scan_imitation(writer):
             await writer.drain()
 
 
+async def scan_imitation_hex(writer):
+    async with aiofiles.open("data/dataset_clean.txt", "r") as file:
+        while True:
+            data = await file.read(6978)
+            if not data:  # Если данных больше нет, выходим из цикла
+                break
+            await asyncio.sleep(0.001)
+            writer.write(data)
+            await writer.drain()
+
+
 async def handle_connection(reader, writer):
     addr = writer.get_extra_info("peername")
     print("Connected by", addr)
